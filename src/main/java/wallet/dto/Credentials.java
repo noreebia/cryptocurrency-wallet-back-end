@@ -1,6 +1,6 @@
 package wallet.dto;
 
-public class RequestCredentials {
+public class Credentials {
 	String username;
 	String password;
 	

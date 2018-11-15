@@ -23,11 +23,5 @@ public class CryptocurrencyWalletApplicationTests {
 	
 	@Test
 	public void checkForExistence() {
-		boolean test = userService.isExistingUsername("testusername");
-		System.out.println(test);
-		assertTrue(test);
-		test = userService.isExistingUsername("yomski");
-		System.out.println(test);
-		assertTrue(!test);
 	}
 }
