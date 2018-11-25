@@ -1,7 +1,9 @@
 package wallet.service;
 
+import java.io.IOException;
 import java.util.List;
 
+import org.apache.http.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,12 +18,14 @@ public class UserService {
 	private static String EXISTING_USERNAME_MESSAGE = "Username already exists. Please try a different one.";
 	private static String NON_EXISTANT_USERNAME = "Username does not exist.";
 	private static String INVALID_CREDENTIALS = "Wrong username or password. Please try again.";
-	
+
 	UserRepository userRepository;
+	RpcService rpcService;
 
 	@Autowired
-	public UserService(UserRepository userRepository) {
+	public UserService(UserRepository userRepository, RpcService rpcService) {
 		this.userRepository = userRepository;
+		this.rpcService = rpcService;
 	}
 
 	public List<User> findAll() {
@@ -64,18 +68,41 @@ public class UserService {
 	public GenericResponse isExistingUsername(String username) {
 		return new GenericResponse(usernameExists(username), null);
 	}
-	
+
 	public boolean usernameExists(String username) {
 		return userRepository.existsByUsername(username);
 	}
-	
+
 	public GenericResponse isValidCredentials(Credentials credentials) {
-		boolean isValidCredentials = userRepository.existsByPassword(credentials.getPassword()) && userRepository.existsByUsername(credentials.getUsername());
-		
+		boolean isValidCredentials = userRepository.existsByPassword(credentials.getPassword())
+				&& userRepository.existsByUsername(credentials.getUsername());
+
 		String details = null;
-		if(!isValidCredentials) {
+		if (!isValidCredentials) {
 			details = INVALID_CREDENTIALS;
 		}
 		return new GenericResponse(isValidCredentials, details);
+	}
+
+	public void createEthereumAddress(String username) {
+		User user = userRepository.findByUsername(username);
+		String address;
+		// String address = sendJsonRpcCall()
+	}
+
+	public GenericResponse createAddressForUser(Credentials credentials) {
+		String address = null;
+		try {
+			address = rpcService.createAddress();
+		} catch (ParseException | IOException e) {
+			e.printStackTrace();
+			return new GenericResponse(false, e);
+		}
+		
+		User user = userRepository.findByUsername(credentials.getUsername());
+		user.setAddress(address);
+		userRepository.save(user);
+		
+		return new GenericResponse(true, address);
 	}
 }

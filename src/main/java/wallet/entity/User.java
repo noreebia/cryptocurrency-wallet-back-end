@@ -12,7 +12,10 @@ public class User {
 	public String id;
 	public String username;
 	public String password;
+	public String address;
 	public List<Balance> balances;
+	
+	
 	
 	public String getId() {
 		return id;
@@ -31,6 +34,12 @@ public class User {
 	}
 	public void setPassword(String password) {
 		this.password = password;
+	}
+	public String getAddress() {
+		return address;
+	}
+	public void setAddress(String address) {
+		this.address = address;
 	}
 	public List<Balance> getBalances() {
 		return balances;

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import wallet.dto.Credentials;
@@ -18,37 +19,41 @@ import wallet.service.UserService;
 @RestController
 @RequestMapping("/users")
 public class UserController {
-	
+
 	UserService userService;
-	
+
 	@Autowired
 	public UserController(UserService userService) {
 		this.userService = userService;
 	}
-	
+
 	@GetMapping("")
 	public List<User> getAllUsers() {
 		return userService.findAll();
 	}
-	
+
 	@PostMapping("")
 	public GenericResponse createUser(@RequestBody Credentials credentials) {
 		return userService.createUser(credentials);
 	}
-	
+
 	@PostMapping("/validation")
 	public GenericResponse isValidCredentials(@RequestBody Credentials credentials) {
 		return userService.isValidCredentials(credentials);
 	}
-	
+
 	@GetMapping("/{username}")
-	public  GenericResponse getUserInfo(@PathVariable String username) {
+	public GenericResponse getUserInfo(@PathVariable String username) {
 		return userService.getUser(username);
 	}
-	
-	@GetMapping("/{username}/balances")
-	public GenericResponse getBalancesOfUser(@PathVariable String username){
+
+	@GetMapping("/balances")
+	public GenericResponse getBalancesOfUser(@RequestParam String username) {
 		return userService.getBalanceOf(username);
 	}
 
+	@PostMapping("/addresses")
+	public GenericResponse createAddressForUser(@RequestBody Credentials credentials) {
+		return userService.createAddressForUser(credentials);
+	}
 }
