@@ -47,13 +47,13 @@ public class UserController {
 		return userService.getUser(username);
 	}
 
-	@GetMapping("/balances")
-	public GenericResponse getBalancesOfUser(@RequestParam String username) {
-		return userService.getBalanceOf(username);
+	@GetMapping("/balances/{currencySymbol}")
+	public GenericResponse getBalancesOfUser(@RequestParam String username, @PathVariable String currencySymbol) {
+		return userService.getBalanceOf(username, currencySymbol);
 	}
 
-	@PostMapping("/addresses")
-	public GenericResponse createAddressForUser(@RequestBody String username) {
+	@PostMapping("/{username}/addresses")
+	public GenericResponse createAddressForUser(@PathVariable String username) {
 		return userService.createAddressForUser(username);
 	}
 }

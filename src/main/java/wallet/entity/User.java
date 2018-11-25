@@ -1,6 +1,6 @@
 package wallet.entity;
 
-import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -13,7 +13,7 @@ public class User {
 	public String username;
 	public String password;
 	public String address;
-	public List<Balance> balances;
+	public Map<String, String> balances;
 	
 	public String getId() {
 		return id;
@@ -39,10 +39,10 @@ public class User {
 	public void setAddress(String address) {
 		this.address = address;
 	}
-	public List<Balance> getBalances() {
+	public Map<String, String> getBalances() {
 		return balances;
 	}
-	public void setBalances(List<Balance> balances) {
+	public void setBalances(Map<String, String> balances) {
 		this.balances = balances;
 	}
 }

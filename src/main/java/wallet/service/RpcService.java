@@ -2,6 +2,8 @@ package wallet.service;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.ParseException;
@@ -11,6 +13,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -29,9 +32,13 @@ public class RpcService {
 			JSONObject jsonObject = new JSONObject();
 			jsonObject.put("jsonrpc", "2.0");
 			jsonObject.put("method", "personal_newAccount");
-			jsonObject.put("params", new String[] {"1234"});
+			
+			JSONArray jsonArray = new JSONArray();
+			jsonArray.put("1234");
+			jsonObject.put("params", jsonArray);
 			jsonObject.put("id", 1);
 			
+			System.out.println(jsonObject.toString());
 			StringEntity entity = new StringEntity(jsonObject.toString());
 			httpPost.setEntity(entity);
 			httpPost.setHeader("Accept", "application/json");
@@ -40,6 +47,7 @@ public class RpcService {
 			CloseableHttpResponse response = httpClient.execute(httpPost);
 			HttpEntity responseEntity = response.getEntity();
 			String responseString = EntityUtils.toString(responseEntity, StandardCharsets.UTF_8);
+			System.out.println(responseString);
 			httpClient.close();
 			
 			JSONObject object = new JSONObject(responseString);

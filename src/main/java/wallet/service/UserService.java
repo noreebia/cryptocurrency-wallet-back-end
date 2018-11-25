@@ -49,10 +49,10 @@ public class UserService {
 		return response;
 	}
 
-	public GenericResponse getBalanceOf(String username) {
+	public GenericResponse getBalanceOf(String username, String currencySymbol) {
 		User user = userRepository.findByUsername(username);
 		if (user != null) {
-			return new GenericResponse(true, user.getBalances());
+			return new GenericResponse(true, user.getBalances().get(currencySymbol));
 		}
 		return new GenericResponse(false, NON_EXISTANT_USERNAME);
 	}
@@ -76,7 +76,7 @@ public class UserService {
 	public GenericResponse isValidCredentials(Credentials credentials) {
 		boolean isValidCredentials = userRepository.existsByPassword(credentials.getPassword())
 				&& userRepository.existsByUsername(credentials.getUsername());
-
+		
 		String details = null;
 		if (!isValidCredentials) {
 			details = INVALID_CREDENTIALS;
@@ -85,18 +85,28 @@ public class UserService {
 	}
 
 	public GenericResponse createAddressForUser(String username) {
-		String address = null;
+		if(!userRepository.existsByUsername(username)) {
+			return new GenericResponse(false, NON_EXISTANT_USERNAME);
+		}
+		
+		// check if already has an address
+		User user = userRepository.findByUsername(username);
+		if(user.getAddress() != null) {
+			return new GenericResponse(true, user.getAddress());
+		}
+		
+		// create new address
+		String newAddress = null;
 		try {
-			address = rpcService.createAddress();
+			newAddress = rpcService.createAddress();
 		} catch (ParseException | IOException e) {
 			e.printStackTrace();
 			return new GenericResponse(false, e);
 		}
-		
-		User user = userRepository.findByUsername(username);
-		user.setAddress(address);
+
+		user.setAddress(newAddress);
 		userRepository.save(user);
-		
-		return new GenericResponse(true, address);
+
+		return new GenericResponse(true, newAddress);
 	}
 }
