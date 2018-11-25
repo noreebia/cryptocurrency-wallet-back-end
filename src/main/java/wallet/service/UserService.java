@@ -84,13 +84,7 @@ public class UserService {
 		return new GenericResponse(isValidCredentials, details);
 	}
 
-	public void createEthereumAddress(String username) {
-		User user = userRepository.findByUsername(username);
-		String address;
-		// String address = sendJsonRpcCall()
-	}
-
-	public GenericResponse createAddressForUser(Credentials credentials) {
+	public GenericResponse createAddressForUser(String username) {
 		String address = null;
 		try {
 			address = rpcService.createAddress();
@@ -99,7 +93,7 @@ public class UserService {
 			return new GenericResponse(false, e);
 		}
 		
-		User user = userRepository.findByUsername(credentials.getUsername());
+		User user = userRepository.findByUsername(username);
 		user.setAddress(address);
 		userRepository.save(user);
 		

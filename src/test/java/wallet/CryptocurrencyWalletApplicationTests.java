@@ -26,6 +26,6 @@ public class CryptocurrencyWalletApplicationTests {
 	
 	@Test
 	public void httpClientWorks() {
-		userService.createAddressForUser(new Credentials("testusername"));
+		userService.createAddressForUser("testusername");
 	}
 }

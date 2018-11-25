@@ -15,8 +15,6 @@ public class User {
 	public String address;
 	public List<Balance> balances;
 	
-	
-	
 	public String getId() {
 		return id;
 	}

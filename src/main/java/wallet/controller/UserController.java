@@ -53,7 +53,7 @@ public class UserController {
 	}
 
 	@PostMapping("/addresses")
-	public GenericResponse createAddressForUser(@RequestBody Credentials credentials) {
-		return userService.createAddressForUser(credentials);
+	public GenericResponse createAddressForUser(@RequestBody String username) {
+		return userService.createAddressForUser(username);
 	}
 }
