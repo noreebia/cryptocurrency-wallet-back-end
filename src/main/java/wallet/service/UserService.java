@@ -18,6 +18,7 @@ public class UserService {
 	private static String EXISTING_USERNAME_MESSAGE = "Username already exists. Please try a different one.";
 	private static String NON_EXISTANT_USERNAME = "Username does not exist.";
 	private static String INVALID_CREDENTIALS = "Wrong username or password. Please try again.";
+	private static String NO_ADDRESS = "User does not have an address yet. Please create one.";
 
 	UserRepository userRepository;
 	RpcService rpcService;
@@ -108,5 +109,19 @@ public class UserService {
 		userRepository.save(user);
 
 		return new GenericResponse(true, newAddress);
+	}
+	
+	public GenericResponse getAddressOfUser(String username) {
+		if(!usernameExists(username)) {
+			return new GenericResponse(false, null);
+		}
+		
+		User user = userRepository.findByUsername(username);
+		
+		if(user.getAddress() == null) {
+			return new GenericResponse(false, NO_ADDRESS); // if user doesn't have an address yet
+		} else {
+			return new GenericResponse(true, user.getAddress()); 
+		}
 	}
 }

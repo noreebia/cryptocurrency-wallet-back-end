@@ -47,9 +47,14 @@ public class UserController {
 		return userService.getUser(username);
 	}
 
-	@GetMapping("/balances/{currencySymbol}")
-	public GenericResponse getBalancesOfUser(@RequestParam String username, @PathVariable String currencySymbol) {
+	@GetMapping("{username}/balances/{currencySymbol}")
+	public GenericResponse getBalancesOfUser(@PathVariable String username, @PathVariable String currencySymbol) {
 		return userService.getBalanceOf(username, currencySymbol);
+	}
+	
+	@GetMapping("/{username}/addresses")
+	public GenericResponse getAddressOfUser(@PathVariable String username) {
+		return userService.getAddressOfUser(username);
 	}
 
 	@PostMapping("/{username}/addresses")
