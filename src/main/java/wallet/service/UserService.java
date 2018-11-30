@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.http.ParseException;
+import org.apache.http.client.ClientProtocolException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -100,7 +101,7 @@ public class UserService {
 		String newAddress = null;
 		try {
 			newAddress = rpcService.createAddress();
-		} catch (ParseException | IOException e) {
+		} catch (ParseException e) {
 			e.printStackTrace();
 			return new GenericResponse(false, e);
 		}
@@ -113,7 +114,7 @@ public class UserService {
 	
 	public GenericResponse getAddressOfUser(String username) {
 		if(!usernameExists(username)) {
-			return new GenericResponse(false, null);
+			return new GenericResponse(false, NON_EXISTANT_USERNAME);
 		}
 		
 		User user = userRepository.findByUsername(username);
@@ -123,5 +124,21 @@ public class UserService {
 		} else {
 			return new GenericResponse(true, user.getAddress()); 
 		}
+	}
+	
+	public GenericResponse send(String username, String addressOfRecipient) {
+		if(!usernameExists(username)) {
+			return new GenericResponse(false, NON_EXISTANT_USERNAME);
+		}
+		
+		User user = userRepository.findByUsername(username);
+		
+		if(user.getAddress() == null) {
+			return new GenericResponse(false, NO_ADDRESS); // if user doesn't have an address yet
+		}
+		
+		String txId = null;
+		txId = rpcService.createTransaction(user.getAddress(), addressOfRecipient);
+		return new GenericResponse(true, txId);
 	}
 }
