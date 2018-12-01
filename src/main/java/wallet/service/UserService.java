@@ -1,10 +1,9 @@
 package wallet.service;
 
-import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.http.ParseException;
-import org.apache.http.client.ClientProtocolException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -52,19 +51,24 @@ public class UserService {
 	}
 
 	public GenericResponse getBalanceOf(String username, String currencySymbol) {
-		User user = userRepository.findByUsername(username);
-		if (user != null) {
-			return new GenericResponse(true, user.getBalances().get(currencySymbol));
+		Optional<User> user = userRepository.findByUsername(username);
+
+		if (user.isPresent()) {
+			return new GenericResponse(true, user.get().getBalances().get(currencySymbol));
+		} else {
+			return new GenericResponse(false, NON_EXISTANT_USERNAME);
 		}
-		return new GenericResponse(false, NON_EXISTANT_USERNAME);
 	}
 
 	public GenericResponse getUser(String username) {
-		User user = userRepository.findByUsername(username);
-		if (user != null) {
-			return new GenericResponse(true, user);
-		}
-		return new GenericResponse(false, NON_EXISTANT_USERNAME);
+		
+		Optional<User> user = userRepository.findByUsername(username);
+		
+		if(user.isPresent()) {
+			return new GenericResponse(true, user.get());
+		} else {
+			return new GenericResponse(false, NON_EXISTANT_USERNAME);
+		}		
 	}
 
 	public GenericResponse isExistingUsername(String username) {
@@ -78,7 +82,7 @@ public class UserService {
 	public GenericResponse isValidCredentials(Credentials credentials) {
 		boolean isValidCredentials = userRepository.existsByPassword(credentials.getPassword())
 				&& userRepository.existsByUsername(credentials.getUsername());
-		
+
 		String details = null;
 		if (!isValidCredentials) {
 			details = INVALID_CREDENTIALS;
@@ -87,16 +91,18 @@ public class UserService {
 	}
 
 	public GenericResponse createAddressForUser(String username) {
-		if(!userRepository.existsByUsername(username)) {
+		if (!userRepository.existsByUsername(username)) {
 			return new GenericResponse(false, NON_EXISTANT_USERNAME);
 		}
-		
+
 		// check if already has an address
-		User user = userRepository.findByUsername(username);
-		if(user.getAddress() != null) {
-			return new GenericResponse(true, user.getAddress());
-		}
+		User user = userRepository.findByUsername(username).get();
 		
+		Optional<String> addressOfUser = getOptionalAddressOfUser(user);
+		if(addressOfUser.isPresent()) {
+			return new GenericResponse(true, addressOfUser);
+		}
+
 		// create new address
 		String newAddress = null;
 		try {
@@ -108,37 +114,42 @@ public class UserService {
 
 		user.setAddress(newAddress);
 		userRepository.save(user);
-
 		return new GenericResponse(true, newAddress);
 	}
-	
+
 	public GenericResponse getAddressOfUser(String username) {
-		if(!usernameExists(username)) {
+		
+		if (!usernameExists(username)) {
 			return new GenericResponse(false, NON_EXISTANT_USERNAME);
 		}
-		
-		User user = userRepository.findByUsername(username);
-		
-		if(user.getAddress() == null) {
-			return new GenericResponse(false, NO_ADDRESS); // if user doesn't have an address yet
+
+		User user = userRepository.findByUsername(username).get();
+		Optional<String> addressOfUser = getOptionalAddressOfUser(user);
+		if(addressOfUser.isPresent()) {
+			return new GenericResponse(true, user.getAddress());
 		} else {
-			return new GenericResponse(true, user.getAddress()); 
+			return new GenericResponse(false, NO_ADDRESS);
 		}
 	}
-	
+
 	public GenericResponse send(String username, String addressOfRecipient) {
-		if(!usernameExists(username)) {
+		if (!usernameExists(username)) {
 			return new GenericResponse(false, NON_EXISTANT_USERNAME);
 		}
+
+		User user = userRepository.findByUsername(username).get();
+		Optional<String> addressOfUser = getOptionalAddressOfUser(user);
 		
-		User user = userRepository.findByUsername(username);
-		
-		if(user.getAddress() == null) {
+		if(addressOfUser.isPresent()) {
 			return new GenericResponse(false, NO_ADDRESS); // if user doesn't have an address yet
 		}
 		
 		String txId = null;
-		txId = rpcService.createTransaction(user.getAddress(), addressOfRecipient);
+		txId = rpcService.createTransaction(addressOfUser.get(), addressOfRecipient);
 		return new GenericResponse(true, txId);
+	}
+	
+	private static Optional<String> getOptionalAddressOfUser(User user){
+		return Optional.ofNullable(user.getAddress());
 	}
 }
