@@ -1,5 +1,6 @@
 package wallet.entity;
 
+import java.math.BigInteger;
 import java.util.Map;
 
 import org.springframework.data.annotation.Id;
@@ -13,7 +14,7 @@ public class User {
 	public String username;
 	public String password;
 	public String address;
-	public Map<String, String> balances;
+	public Map<String, BigInteger> balances;
 	
 	public String getId() {
 		return id;
@@ -41,11 +42,11 @@ public class User {
 	public void setAddress(String address) {
 		this.address = address;
 	}
-	
-	public Map<String, String> getBalances() {
+	public Map<String, BigInteger> getBalances() {
 		return balances;
 	}
-	public void setBalances(Map<String, String> balances) {
+	public void setBalances(Map<String, BigInteger> balances) {
 		this.balances = balances;
 	}
+	
 }

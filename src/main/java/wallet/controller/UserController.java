@@ -60,4 +60,9 @@ public class UserController {
 	public GenericResponse createAddressForUser(@PathVariable String username) {
 		return userService.createAddressForUser(username);
 	}
+	
+//	@GetMapping("/{username}/balances/{currencySymbol}")
+//	public GenericResponse getBalance(@PathVariable String username, @PathVariable String currencySymbol) {
+//		return null;
+//	}
 }

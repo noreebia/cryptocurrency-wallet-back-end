@@ -1,10 +1,14 @@
 package wallet.service;
 
+import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.apache.http.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import wallet.dto.Credentials;
@@ -22,6 +26,9 @@ public class UserService {
 
 	UserRepository userRepository;
 	RpcService rpcService;
+	
+	@Value("${active.currencies}")
+	String[] activeCurrencies;
 
 	@Autowired
 	public UserService(UserRepository userRepository, RpcService rpcService) {
@@ -42,6 +49,13 @@ public class UserService {
 			User user = new User();
 			user.setUsername(credentials.getUsername());
 			user.setPassword(credentials.getPassword());
+			
+			Map<String, BigInteger> balances = new HashMap<>();
+			for(String currency: activeCurrencies) {
+				balances.put(currency, BigInteger.valueOf(0));
+			}
+			user.setBalances(balances);
+			
 			User result = userRepository.save(user);
 			if (result.getUsername() == user.getUsername() && result.getPassword() == user.getPassword()) {
 				response.setSuccessful(true);
@@ -76,12 +90,14 @@ public class UserService {
 	}
 
 	public boolean usernameExists(String username) {
+		
+		System.out.println("Existence of user with username " + username + ": " + userRepository.existsByUsername(username));
 		return userRepository.existsByUsername(username);
 	}
 
 	public GenericResponse isValidCredentials(Credentials credentials) {
 		boolean isValidCredentials = userRepository.existsByPassword(credentials.getPassword())
-				&& userRepository.existsByUsername(credentials.getUsername());
+				&& usernameExists(credentials.getUsername());
 
 		String details = null;
 		if (!isValidCredentials) {
@@ -91,7 +107,7 @@ public class UserService {
 	}
 
 	public GenericResponse createAddressForUser(String username) {
-		if (!userRepository.existsByUsername(username)) {
+		if (!usernameExists(username)) {
 			return new GenericResponse(false, NON_EXISTANT_USERNAME);
 		}
 
