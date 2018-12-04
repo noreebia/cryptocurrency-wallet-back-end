@@ -10,6 +10,7 @@ import org.apache.http.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import wallet.dto.Credentials;
 import wallet.dto.GenericResponse;
@@ -20,7 +21,7 @@ import wallet.repository.UserRepository;
 public class UserService {
 
 	private static String EXISTING_USERNAME_MESSAGE = "Username already exists. Please try a different one.";
-	private static String NON_EXISTANT_USERNAME = "Username does not exist.";
+	private static String NON_EXISTENT_USERNAME = "Username does not exist.";
 	private static String INVALID_CREDENTIALS = "Wrong username or password. Please try again.";
 	private static String NO_ADDRESS = "User does not have an address yet. Please create one.";
 
@@ -64,18 +65,28 @@ public class UserService {
 		return response;
 	}
 
-	public GenericResponse getBalances(String username, String currencySymbol) {
+	public GenericResponse getBalances(String username) {
 		Optional<User> user = userRepository.findByUsername(username);
 
 		if (user.isPresent()) {
 			updateBalances(user.get());
 			return new GenericResponse(true, user.get().getBalances());
 		} else {
-			return new GenericResponse(false, NON_EXISTANT_USERNAME);
+			return new GenericResponse(false, NON_EXISTENT_USERNAME);
 		}
 	}
 	
-	public void updateBalances(User user) {
+	@Transactional
+	private boolean updateBalances(User user) {
+		try {
+			Map<String, BigInteger> map = new HashMap<>(user.getBalances());
+			map.putAll(rpcService.getCurrentBalances(user.getAddress()));
+			user.setBalances(map);
+			userRepository.save(user);
+		} catch(Exception e) {
+			return false;
+		}
+		return true;
 	}
 
 	public GenericResponse getUser(String username) {
@@ -85,7 +96,7 @@ public class UserService {
 		if(user.isPresent()) {
 			return new GenericResponse(true, user.get());
 		} else {
-			return new GenericResponse(false, NON_EXISTANT_USERNAME);
+			return new GenericResponse(false, NON_EXISTENT_USERNAME);
 		}		
 	}
 
@@ -112,7 +123,7 @@ public class UserService {
 
 	public GenericResponse createAddressForUser(String username) {
 		if (!usernameExists(username)) {
-			return new GenericResponse(false, NON_EXISTANT_USERNAME);
+			return new GenericResponse(false, NON_EXISTENT_USERNAME);
 		}
 
 		// check if already has an address
@@ -123,7 +134,7 @@ public class UserService {
 			return new GenericResponse(true, addressOfUser);
 		}
 
-		// create new address
+		// if not, create new address
 		String newAddress = null;
 		try {
 			newAddress = rpcService.createAddress();
@@ -140,7 +151,7 @@ public class UserService {
 	public GenericResponse getAddressOfUser(String username) {
 		
 		if (!usernameExists(username)) {
-			return new GenericResponse(false, NON_EXISTANT_USERNAME);
+			return new GenericResponse(false, NON_EXISTENT_USERNAME);
 		}
 
 		User user = userRepository.findByUsername(username).get();
@@ -154,7 +165,7 @@ public class UserService {
 
 	public GenericResponse send(String username, String addressOfRecipient) {
 		if (!usernameExists(username)) {
-			return new GenericResponse(false, NON_EXISTANT_USERNAME);
+			return new GenericResponse(false, NON_EXISTENT_USERNAME);
 		}
 
 		User user = userRepository.findByUsername(username).get();

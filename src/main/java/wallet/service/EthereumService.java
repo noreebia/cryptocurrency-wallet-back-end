@@ -15,7 +15,7 @@ public class EthereumService {
 	@Autowired
 	public EthereumService(Web3j web3) {
 		this.web3j = web3;
-		getTransactions();
+//		getTransactions();
 	}
 
 	public String getWeb3Version() {
