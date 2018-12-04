@@ -64,14 +64,18 @@ public class UserService {
 		return response;
 	}
 
-	public GenericResponse getBalanceOf(String username, String currencySymbol) {
+	public GenericResponse getBalances(String username, String currencySymbol) {
 		Optional<User> user = userRepository.findByUsername(username);
 
 		if (user.isPresent()) {
-			return new GenericResponse(true, user.get().getBalances().get(currencySymbol));
+			updateBalances(user.get());
+			return new GenericResponse(true, user.get().getBalances());
 		} else {
 			return new GenericResponse(false, NON_EXISTANT_USERNAME);
 		}
+	}
+	
+	public void updateBalances(User user) {
 	}
 
 	public GenericResponse getUser(String username) {
