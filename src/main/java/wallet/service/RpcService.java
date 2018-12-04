@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpEntity;
@@ -19,8 +21,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import wallet.entity.UserBalance;
 import wallet.exception.RpcException;
 
 @Service
@@ -139,14 +141,6 @@ public class RpcService {
 		basicRequest.put("jsonrpc", "2.0");
 		basicRequest.put("id", 1);
 		return basicRequest;
-	}
-
-	public Map<String, BigInteger> getCurrentBalances(String address) {
-		Map<String, BigInteger> map = new HashMap<>();
-		for(String activeCurrency: activeCurrencies) {
-			map.put(activeCurrency, getBalance(activeCurrency, address));
-		}
-		return map;
 	}
 
 	public BigInteger getBalance(String symbol, String address) {

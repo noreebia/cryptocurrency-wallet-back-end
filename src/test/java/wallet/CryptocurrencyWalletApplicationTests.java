@@ -29,7 +29,7 @@ public class CryptocurrencyWalletApplicationTests {
 
 	@Test
 	public void httpClientWorks() {
-		userService.createAddressForUser("testusername");
+		userService.createUserAddress("testusername");
 	}
 
 	@Test
