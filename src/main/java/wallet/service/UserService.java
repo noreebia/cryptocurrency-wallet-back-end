@@ -178,7 +178,7 @@ public class UserService {
 		}
 	}
 
-	public GenericResponse send(String username, String addressOfRecipient) {
+	public GenericResponse sendTransaction(String username, String destinationAddress) {
 		if (!usernameExists(username)) {
 			return new GenericResponse(false, NON_EXISTENT_USERNAME);
 		}
@@ -191,7 +191,7 @@ public class UserService {
 		}
 
 		String txId = null;
-		txId = rpcService.createTransaction(addressOfUser.get(), addressOfRecipient);
+		txId = rpcService.createTransaction(addressOfUser.get(), destinationAddress);
 		return new GenericResponse(true, txId);
 	}
 

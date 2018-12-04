@@ -61,8 +61,9 @@ public class UserController {
 		return userService.createUserAddress(username);
 	}
 	
-//	@GetMapping("/{username}/balances/{currencySymbol}")
-//	public GenericResponse getBalance(@PathVariable String username, @PathVariable String currencySymbol) {
-//		return null;
-//	}
+	@PostMapping("/{username}/transactions")
+	public GenericResponse sendTransaction(@PathVariable String username) {
+		return null;
+	}
+	
 }
