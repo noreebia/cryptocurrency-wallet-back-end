@@ -15,7 +15,7 @@ public class EthereumService {
 	@Autowired
 	public EthereumService(Web3j web3) {
 		this.web3j = web3;
-//		getTransactions();
+		// getTransactions();
 	}
 
 	public String getWeb3Version() {
@@ -29,26 +29,27 @@ public class EthereumService {
 	}
 
 	public void getTransactions() {
-////		Disposable subscription = web3.transactionFlowable().subscribe(tx -> { System.out.println(tx.toString()); });
-//		System.out.println("I'm working!");
-////		Disposable subscription = web3.blockFlowable(false).subscribe(block -> {
-////			System.out.println(block.toString());
-////		});
-//		
-//		
-//		Subscription subscription = ((Object) web3j).replayTransactionsFlowable()
-//		        .subscribe(tx -> {});
-//	}
-		
-//		Subscription subscription = web3j.transactionObservable().subscribe(tx -> {
-//			System.out.println(tx.getTo());
-//		});
-		
+		//// Disposable subscription = web3.transactionFlowable().subscribe(tx -> {
+		//// System.out.println(tx.toString()); });
+		// System.out.println("I'm working!");
+		//// Disposable subscription = web3.blockFlowable(false).subscribe(block -> {
+		//// System.out.println(block.toString());
+		//// });
+		//
+		//
+		// Subscription subscription = ((Object) web3j).replayTransactionsFlowable()
+		// .subscribe(tx -> {});
+		// }
+
+		// Subscription subscription = web3j.transactionObservable().subscribe(tx -> {
+		// System.out.println(tx.getTo());
+		// });
+
 		Subscription subscription = web3j.blockObservable(false).subscribe(block -> {
 			System.out.println("hi!");
 			System.out.println(block.getBlock().toString());
 		});
-		
+
 	}
-	
+
 }

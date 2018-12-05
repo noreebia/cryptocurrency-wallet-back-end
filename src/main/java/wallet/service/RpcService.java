@@ -37,7 +37,7 @@ public class RpcService {
 	private static String SEND_TRANSACTION = "eth_sendTransaction";
 	private static String UNLOCK_ACCOUNT = "personal_unlockAccount";
 	private static String LOCK_ACCOUNT = "personal_lockAccount";
-	
+
 	@Value("${active.currencies}")
 	String[] activeCurrencies;
 
@@ -57,17 +57,21 @@ public class RpcService {
 		return responseFromNode.getString("result");
 	}
 
-	public String createTransaction(String addressOfSender, String addressOfRecipient) throws RpcException {
+	public String transfer(String addressOfSender, String addressOfRecipient, String currencySymbol, String amount)
+			throws RpcException {
 
 		unlockAccount(addressOfSender);
-
 		JSONObject request = buildBasicRequest();
 
-		JSONArray jsonArray = new JSONArray();
-		jsonArray.put(userAccountPassword);
-		request.put("params", jsonArray);
+		switch (currencySymbol) {
+		case "eth":
+			JSONArray jsonArray = new JSONArray();
+			jsonArray.put(userAccountPassword);
+			request.put("params", jsonArray);
 
-		request.put("method", SEND_TRANSACTION);
+			request.put("method", SEND_TRANSACTION);
+			break;
+		}
 
 		JSONObject responseFromNode = sendRequestToNode(request);
 		if (responseFromNode.has("error")) {
@@ -156,7 +160,7 @@ public class RpcService {
 			String formattedAddress = address.substring(2);
 			String dataField = String.format("%64s", formattedAddress).replace(' ', '0');
 			String dataString = BALANCEOF_FUNCTION_ID + dataField;
-			
+
 			JSONObject invocationDetails = new JSONObject();
 			invocationDetails.put("to", konkukCoinContractAddress);
 			invocationDetails.put("data", dataString);
@@ -174,6 +178,10 @@ public class RpcService {
 		if (response.has("error")) {
 			throw new RpcException(response.getJSONObject("error").getString("message"));
 		}
-		return new BigInteger(response.getString("result").substring(2), 16);
+		String balanceInHex = response.getString("result");
+		if (balanceInHex.equals("0x")) {
+			return BigInteger.valueOf(0);
+		}
+		return new BigInteger(balanceInHex.substring(2), 16);
 	}
 }
