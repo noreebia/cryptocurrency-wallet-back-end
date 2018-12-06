@@ -22,26 +22,24 @@ import wallet.repository.UserRepository;
 
 @Service
 public class EthereumService {
-	
+
 	Logger logger = LoggerFactory.getLogger(EthereumService.class);
 
 	private Web3j web3j;
-	
+
 	@Autowired
 	private UserRepository userRepository;
-	
+
 	@Autowired
 	private RpcService rpcService;
-	
+
 	@Autowired
 	private UserService userService;
-	
+
 	@Value("${ethereum.contract.address.kkc}")
 	private String konkukCoinContractAddress;
-	
+
 	private static volatile long syncedBlockHeight = 0;
-	
-	ExecutorService executorService = Executors.newFixedThreadPool(3);
 
 	@Autowired
 	public EthereumService(Web3j web3, UserRepository userRepository, UserService userService) {
@@ -49,7 +47,7 @@ public class EthereumService {
 		this.userRepository = userRepository;
 		this.userService = userService;
 	}
-	
+
 	@PostConstruct
 	private void initializeSyncedBlockHeight() {
 		this.syncedBlockHeight = rpcService.getCurrentBlockHeight();
@@ -65,68 +63,54 @@ public class EthereumService {
 		return web3ClientVersion.getWeb3ClientVersion();
 	}
 
-//	@Scheduled(fixedDelay = 3000)
-//	public void checkForDeposit () {
-//		if(syncedBlockHeight == 0) {
-//			initializeSyncedBlockHeight();
-//		}
-//		logger.debug("Checking for deposits");
-//		long currentBlockHeight = rpcService.getCurrentBlockHeight();
-//		logger.debug("Synced height: " + syncedBlockHeight + "current height: " + currentBlockHeight);
-//		if(currentBlockHeight > syncedBlockHeight) {
-//			for(long i=syncedBlockHeight; i <= currentBlockHeight; i++) {
-//				
-//				class DepositChecker implements Runnable {
-//			        JSONObject block;
-//			        DepositChecker(JSONObject block) { this.block = block; }
-//			        public void run() {
-//						JSONObject block = rpcService.getBlock(i);
-//						System.out.println(block);
-//						JSONArray transactions = block.getJSONArray("transactions");
-//						for(int k= 0; k < transactions.length(); k++) {
-//							JSONObject transaction = transactions.getJSONObject(k);
-//							System.out.println(transaction);
-//							Optional<String> toAddressOrNull = Optional.ofNullable(rpcService.getToAddress(transaction));
-//							if(toAddressOrNull.isPresent()) {
-//								String toAddress = toAddressOrNull.get();
-//								if(userRepository.existsByAddress(toAddress)) {
-//									logger.debug("Found deposit to user with address" + toAddress + "!");
-//									User user = userRepository.findByAddress(toAddress).get();
-//									userService.updateUserBalances(user);
-//									logger.debug("Updated user balance");
-//								} else if(toAddressOrNull.equals(konkukCoinContractAddress)) {
-//									logger.debug("Found konkukcoin transaction");
-//								}						
-//							}
-//
-//						}			        }
-//			    }
-//				
-//				executorService.execute( () -> {});
-//				JSONObject block = rpcService.getBlock(i);
-//				System.out.println(block);
-//				JSONArray transactions = block.getJSONArray("transactions");
-//				for(int k= 0; k < transactions.length(); k++) {
-//					JSONObject transaction = transactions.getJSONObject(k);
-//					System.out.println(transaction);
-//					Optional<String> toAddressOrNull = Optional.ofNullable(rpcService.getToAddress(transaction));
-//					if(toAddressOrNull.isPresent()) {
-//						String toAddress = toAddressOrNull.get();
-//						if(userRepository.existsByAddress(toAddress)) {
-//							logger.debug("Found deposit to user with address" + toAddress + "!");
-//							User user = userRepository.findByAddress(toAddress).get();
-//							userService.updateUserBalances(user);
-//							logger.debug("Updated user balance");
-//						} else if(toAddressOrNull.equals(konkukCoinContractAddress)) {
-//							logger.debug("Found konkukcoin transaction");
-//						}						
-//					}
-//
-//				}
-//			}			
-//		}
-//
-//		syncedBlockHeight = currentBlockHeight;
-//		logger.debug("Finished deposit checking");
-//	}
+	@Scheduled(fixedDelay = 3000)
+	public void checkBlocksForDeposits() {
+		if (syncedBlockHeight == 0) {
+			initializeSyncedBlockHeight();
+		}
+		logger.debug("Checking for deposits");
+		long currentBlockHeight = rpcService.getCurrentBlockHeight();
+		logger.debug("Synced height: " + syncedBlockHeight + " Current height: " + currentBlockHeight);
+		if (currentBlockHeight > syncedBlockHeight) {
+			for (long i = syncedBlockHeight; i <= currentBlockHeight; i++) {
+				checkSingleBlock(rpcService.getBlock(i));
+			}
+		}
+		setSyncedBlockHeight(currentBlockHeight);
+		logger.debug("Finished deposit checking");
+	}
+
+	private void checkSingleBlock(JSONObject block) {
+		JSONArray transactions = block.getJSONArray("transactions");
+		System.out.println(konkukCoinContractAddress);
+		for (int k = 0; k < transactions.length(); k++) {
+			JSONObject transaction = transactions.getJSONObject(k);
+			Optional<String> toAddressOrNull = Optional.ofNullable(rpcService.getToAddress(transaction));
+			if (toAddressOrNull.isPresent()) {
+				String toAddress = toAddressOrNull.get();
+				if (toAddress.equals(konkukCoinContractAddress)) {
+					logger.debug("Found KUC transaction");
+					String dataField = transaction.getString("input");
+					String userAddress = "0x" + dataField.substring(34, 74);
+					logger.debug("formatted address: " + userAddress);
+					Optional<User> optionalUser = userRepository.findByAddress(userAddress);
+					if(optionalUser.isPresent()) {
+						logger.debug("Found KUC transaction to user.");
+						User user = optionalUser.get();
+						userService.updateUserBalances(user);
+						logger.debug("Updated balances of user with username " + user.getUsername());
+					}
+				} else if (userRepository.existsByAddress(toAddress)) {
+					logger.debug("Found deposit to user with address" + toAddress + "!");
+					User user = userRepository.findByAddress(toAddress).get();
+					userService.updateUserBalances(user);
+					logger.debug("Updated user balance with username " + user.getUsername() + " and address " + user.getAddress());
+				}
+			}
+		}
+	}
+	
+	private void setSyncedBlockHeight(long blockHeight) {
+		this.syncedBlockHeight = blockHeight;
+	}
 }

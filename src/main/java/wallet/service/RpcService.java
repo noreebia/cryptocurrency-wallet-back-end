@@ -246,6 +246,13 @@ public class RpcService {
 		return transaction.getString("to");
 	}
 	
+	public boolean isSmartContractTransaction(JSONObject transaction) {
+		if(transaction.getString("input").equals("0x")) {
+			return false;
+		}
+		return true;
+	}
+	
 	private boolean hasError(JSONObject response) {
 		if(response.has("error")) {
 			return true;
