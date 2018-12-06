@@ -1,5 +1,6 @@
 package wallet;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import org.junit.Test;
@@ -19,13 +20,26 @@ public class RpcServiceTest {
 	
 	@Test
 	public void getEthBalance() {
-		BigInteger test = rpcService.getBalance("eth", "0x7ffc57839b00206d1ad20c69a1981b489f772031");
+		BigDecimal test = rpcService.getBalance("eth", "0x4b40e8d11300c9904854f06095a1460f8136434e");
 		System.out.println(test.toString());
 	}
 	
 	@Test
 	public void getTokenbalance() {
-		BigInteger test = rpcService.getBalance("kkc", "0x580a89eb8aa6dBa5Bf78f7F921225C990a9Ef7d3");
+		BigDecimal test = rpcService.getBalance("kkc", "0x580a89eb8aa6dBa5Bf78f7F921225C990a9Ef7d3");
 		System.out.println(test.toString());
+	}
+	
+	@Test
+	public void transferEth() {
+		String sender = "0x4b40e8d11300c9904854f06095a1460f8136434e";
+		String receiver = "0x580a89eb8aa6dBa5Bf78f7F921225C990a9Ef7d3";
+		String symbol = "eth";
+		String amount = "1";
+		try {
+			System.out.println(rpcService.transfer(sender, receiver, symbol, amount));
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 }

@@ -3,6 +3,7 @@ package wallet.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.methods.response.EthBlock.TransactionResult;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 
 import rx.Subscription;
@@ -15,7 +16,8 @@ public class EthereumService {
 	@Autowired
 	public EthereumService(Web3j web3) {
 		this.web3j = web3;
-		// getTransactions();
+//		 getTransactions();
+//		 getBlocks();
 	}
 
 	public String getWeb3Version() {
@@ -41,15 +43,18 @@ public class EthereumService {
 		// .subscribe(tx -> {});
 		// }
 
-		// Subscription subscription = web3j.transactionObservable().subscribe(tx -> {
-		// System.out.println(tx.getTo());
-		// });
-
-		Subscription subscription = web3j.blockObservable(false).subscribe(block -> {
+		 Subscription subscription = web3j.transactionObservable().subscribe(tx -> {
+		 System.out.println(tx.getTo());
+		 });
+	}
+	
+	public void getBlocks() {
+		Subscription subscription2 = web3j.blockObservable(true).subscribe(block -> {
 			System.out.println("hi!");
 			System.out.println(block.getBlock().toString());
+			for(TransactionResult transaction: block.getBlock().getTransactions()) {
+				System.out.println(transaction.get().toString());
+			}
 		});
-
 	}
-
 }

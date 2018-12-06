@@ -1,13 +1,13 @@
 package wallet.entity;
 
-import java.math.BigInteger;
+import java.math.BigDecimal;
 
 public class UserBalance {
 	public String currencyName;
 	public String currencySymbol;
-	public BigInteger balance;
+	public BigDecimal balance;
 	
-	public UserBalance(String currencyName, String currencySymbol, BigInteger balance) {
+	public UserBalance(String currencyName, String currencySymbol, BigDecimal balance) {
 		this.currencyName = currencyName;
 		this.currencySymbol = currencySymbol;
 		this.balance = balance;
@@ -29,11 +29,11 @@ public class UserBalance {
 		this.currencySymbol = currencySymbol;
 	}
 
-	public BigInteger getBalance() {
+	public BigDecimal getBalance() {
 		return balance;
 	}
 
-	public void setBalance(BigInteger balance) {
+	public void setBalance(BigDecimal balance) {
 		this.balance = balance;
 	}
 	

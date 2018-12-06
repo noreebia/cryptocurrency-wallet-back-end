@@ -1,6 +1,6 @@
 package wallet.service;
 
-import java.math.BigInteger;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -56,7 +56,7 @@ public class UserService {
 				String[] strings = currency.split("@");
 				String currencyName = strings[0];
 				String currencySymbol = strings[1];
-				balances.add(new UserBalance(currencyName, currencySymbol, BigInteger.valueOf(0)));
+				balances.add(new UserBalance(currencyName, currencySymbol, BigDecimal.valueOf(0)));
 			}
 			// Map<String, BigInteger> balances = new HashMap<>();
 			// for(String currency: activeCurrencies) {

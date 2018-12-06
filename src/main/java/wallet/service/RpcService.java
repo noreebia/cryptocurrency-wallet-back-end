@@ -2,6 +2,7 @@ package wallet.service;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 
@@ -40,6 +41,8 @@ public class RpcService {
 
 	@Value("${active.currencies}")
 	String[] activeCurrencies;
+	
+	BigDecimal decimals = new BigDecimal(new BigInteger("1000000000000000000"));
 
 	public String createAddress() throws RpcException {
 		JSONObject request = buildBasicRequest();
@@ -66,11 +69,20 @@ public class RpcService {
 		switch (currencySymbol) {
 		case "eth":
 			JSONArray jsonArray = new JSONArray();
-			jsonArray.put(userAccountPassword);
+			
+			JSONObject parameterObject = new JSONObject();
+			parameterObject.put("from", addressOfSender);
+			parameterObject.put("to", addressOfRecipient);
+			BigInteger transferAmount = new BigDecimal(amount).multiply(decimals).toBigInteger();
+			parameterObject.put("value", "0x"+transferAmount.toString(16));
+			
+			jsonArray.put(parameterObject);
 			request.put("params", jsonArray);
 
 			request.put("method", SEND_TRANSACTION);
 			break;
+			default:
+				return null;
 		}
 
 		JSONObject responseFromNode = sendRequestToNode(request);
@@ -111,29 +123,6 @@ public class RpcService {
 		}
 	}
 
-	private JSONObject sendRequestToNode(JSONObject httpBody) {
-		CloseableHttpClient httpClient = HttpClients.createDefault();
-		HttpPost httpPost = new HttpPost(serverAddress);
-
-		StringEntity entity = null;
-		try {
-			entity = new StringEntity(httpBody.toString());
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-		httpPost.setEntity(entity);
-		httpPost.setHeader("Accept", "application/json");
-		httpPost.setHeader("Content-type", "application/json");
-
-		try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
-			HttpEntity responseEntity = response.getEntity();
-			String responseString = EntityUtils.toString(responseEntity, StandardCharsets.UTF_8);
-			return new JSONObject(responseString);
-		} catch (ParseException | IOException e) {
-			throw new RpcException(e);
-		}
-	}
-
 	/* keys and values that every request has in common */
 	private JSONObject buildBasicRequest() {
 		JSONObject basicRequest = new JSONObject();
@@ -142,7 +131,7 @@ public class RpcService {
 		return basicRequest;
 	}
 
-	public BigInteger getBalance(String symbol, String address) {
+	public BigDecimal getBalance(String symbol, String address) {
 
 		JSONObject request = buildBasicRequest();
 		JSONArray parameters = new JSONArray();
@@ -180,8 +169,33 @@ public class RpcService {
 		}
 		String balanceInHex = response.getString("result");
 		if (balanceInHex.equals("0x")) {
-			return BigInteger.valueOf(0);
+			return BigDecimal.valueOf(0);
 		}
-		return new BigInteger(balanceInHex.substring(2), 16);
+		BigInteger balanceInHexFormat = new BigInteger(balanceInHex.substring(2), 16);
+		BigDecimal bigDecimalBalance = new BigDecimal(balanceInHexFormat);
+		return bigDecimalBalance.divide(decimals);
+	}
+	
+	private JSONObject sendRequestToNode(JSONObject httpBody) {
+		CloseableHttpClient httpClient = HttpClients.createDefault();
+		HttpPost httpPost = new HttpPost(serverAddress);
+
+		StringEntity entity = null;
+		try {
+			entity = new StringEntity(httpBody.toString());
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		httpPost.setEntity(entity);
+		httpPost.setHeader("Accept", "application/json");
+		httpPost.setHeader("Content-type", "application/json");
+
+		try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+			HttpEntity responseEntity = response.getEntity();
+			String responseString = EntityUtils.toString(responseEntity, StandardCharsets.UTF_8);
+			return new JSONObject(responseString);
+		} catch (ParseException | IOException e) {
+			throw new RpcException(e);
+		}
 	}
 }
