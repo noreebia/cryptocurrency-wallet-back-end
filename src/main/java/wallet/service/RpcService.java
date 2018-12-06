@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import wallet.exception.RpcException;
+import wallet.utility.HexUtil;
 
 @Service
 public class RpcService {
@@ -38,6 +39,8 @@ public class RpcService {
 	private static String SEND_TRANSACTION = "eth_sendTransaction";
 	private static String UNLOCK_ACCOUNT = "personal_unlockAccount";
 	private static String LOCK_ACCOUNT = "personal_lockAccount";
+	private static String GET_BLOCK_HEIGHT = "eth_blockNumber";
+	private static String GET_BLOCK = "eth_getBlockByNumber";
 
 	@Value("${active.currencies}")
 	String[] activeCurrencies;
@@ -53,7 +56,7 @@ public class RpcService {
 
 		request.put("method", CREATE_ACCOUNT);
 
-		JSONObject responseFromNode = sendRequestToNode(request);
+		JSONObject responseFromNode = sendRequest(request);
 		if (responseFromNode.has("error")) {
 			throw new RpcException(responseFromNode.getJSONObject("error").getString("message"));
 		}
@@ -85,7 +88,7 @@ public class RpcService {
 				return null;
 		}
 
-		JSONObject responseFromNode = sendRequestToNode(request);
+		JSONObject responseFromNode = sendRequest(request);
 		if (responseFromNode.has("error")) {
 			throw new RpcException(responseFromNode.getJSONObject("error").getString("message"));
 		}
@@ -103,7 +106,7 @@ public class RpcService {
 
 		request.put("method", UNLOCK_ACCOUNT);
 
-		JSONObject responseFromNode = sendRequestToNode(request);
+		JSONObject responseFromNode = sendRequest(request);
 		if (responseFromNode.has("error")) {
 			throw new RpcException(responseFromNode.getJSONObject("error").getString("message"));
 		}
@@ -117,7 +120,7 @@ public class RpcService {
 		jsonArray.put(addressToLock);
 		request.put("params", jsonArray);
 
-		JSONObject responseFromNode = sendRequestToNode(request);
+		JSONObject responseFromNode = sendRequest(request);
 		if (responseFromNode.has("error")) {
 			throw new RpcException(responseFromNode.getJSONObject("error").getString("message"));
 		}
@@ -163,7 +166,7 @@ public class RpcService {
 		default:
 			break;
 		}
-		JSONObject response = sendRequestToNode(request);
+		JSONObject response = sendRequest(request);
 		if (response.has("error")) {
 			throw new RpcException(response.getJSONObject("error").getString("message"));
 		}
@@ -176,7 +179,7 @@ public class RpcService {
 		return bigDecimalBalance.divide(decimals);
 	}
 	
-	private JSONObject sendRequestToNode(JSONObject httpBody) {
+	private JSONObject sendRequest(JSONObject httpBody) {
 		CloseableHttpClient httpClient = HttpClients.createDefault();
 		HttpPost httpPost = new HttpPost(serverAddress);
 
@@ -197,5 +200,68 @@ public class RpcService {
 		} catch (ParseException | IOException e) {
 			throw new RpcException(e);
 		}
+	}
+	
+	public long getCurrentBlockHeight() {
+		JSONObject request = buildBasicRequest();
+		request.put("method", GET_BLOCK_HEIGHT);
+		
+		JSONArray parameters = new JSONArray();
+		request.put("params", parameters);
+		
+		JSONObject response = sendRequest(request);
+		if(hasError(response)) {
+			throw new RpcException(getErrorMessage(response));
+		}
+		BigInteger blockHeight = HexUtil.hexStringToDecimalBigInt(getResultString(response));
+		return blockHeight.longValue();
+
+	}
+	
+	public JSONObject getBlock(long blockNumber) {
+		JSONObject request = buildBasicRequest();
+		request.put("method", GET_BLOCK);
+		JSONArray parameters = new JSONArray();
+		parameters.put("0x" + HexUtil.decimalToHexString(blockNumber));
+		parameters.put(true);
+		request.put("params", parameters);
+		JSONObject response = sendRequest(request);
+		if(hasError(response)) {
+			throw new RpcException(getErrorMessage(response));
+		}
+		return getResultObject(response);
+	}
+	
+	public boolean isContractTransaction(JSONObject transaction) {
+		if(transaction.getString("input").equals("0x")) {
+			return true;
+		}
+		return false;
+	}
+	
+	public String getToAddress(JSONObject transaction) {
+		if(transaction.isNull("to")) {
+			return null;
+		}
+		return transaction.getString("to");
+	}
+	
+	private boolean hasError(JSONObject response) {
+		if(response.has("error")) {
+			return true;
+		}
+		return false;
+	}
+	
+	private String getErrorMessage(JSONObject response) {
+		return response.getJSONObject("error").getString("message");
+	}
+	
+	private String getResultString(JSONObject response) {
+		return response.getString("result");
+	}
+	
+	private JSONObject getResultObject(JSONObject response) {
+		return response.getJSONObject("result");
 	}
 }

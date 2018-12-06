@@ -84,7 +84,7 @@ public class UserService {
 	}
 
 	@Transactional
-	private boolean updateUserBalances(User user) {
+	public boolean updateUserBalances(User user) {
 		try {
 			// Map<String, BigInteger> map = new HashMap<>(user.getBalances());
 			// map.putAll(rpcService.getCurrentBalances(user.getAddress()));

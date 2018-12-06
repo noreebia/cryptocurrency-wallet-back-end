@@ -42,4 +42,14 @@ public class RpcServiceTest {
 			e.printStackTrace();
 		}
 	}
+	
+	@Test
+	public void getBlockHeight() {
+		System.out.println(rpcService.getCurrentBlockHeight());
+	}
+	
+	@Test
+	public void getBlock() {
+		System.out.println(rpcService.getBlock(3465448));
+	}
 }
