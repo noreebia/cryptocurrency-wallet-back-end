@@ -28,5 +28,4 @@ public class UserDepositNotification {
 	public void setBalances(List<UserBalance> balances) {
 		this.balances = balances;
 	}
-	
 }

@@ -93,6 +93,7 @@ public class DepositChecker {
 					logger.debug("Found deposit to user with address" + toAddress + "!");
 					User user = userRepository.findByAddress(toAddress).get();
 					userService.updateUserBalances(user);
+					notifyDeposit(user);
 					logger.debug("Updated user balance with username " + user.getUsername() + " and address " + user.getAddress());
 				}
 			}
@@ -105,6 +106,7 @@ public class DepositChecker {
 	
 	private void notifyDeposit(User user) {
 		UserDepositNotification notification = new UserDepositNotification(user.getUsername(), user.getBalances());
-		template.convertAndSend("topic/deposits", notification);
+		template.convertAndSend("/topic/deposits", notification);
+		logger.debug("Notified websocket subscribers.");
 	}
 }
