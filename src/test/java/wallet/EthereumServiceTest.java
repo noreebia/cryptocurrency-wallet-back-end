@@ -6,17 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import wallet.service.EthereumService;
+import wallet.scheduler.DepositChecker;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class EthereumServiceTest {
 
 	@Autowired
-	EthereumService ethService;
+	DepositChecker ethService;
 	
-	@Test
-	public void getWeb3jVersionWorks() {
-		System.out.println(ethService.getWeb3Version());
-	}
 }

@@ -26,4 +26,4 @@
 /.nb-gradle/
 
 src/main/resources/db-connection.properties
-bin/main/resources/db-connection.properties
+bin/main/db-connection.properties

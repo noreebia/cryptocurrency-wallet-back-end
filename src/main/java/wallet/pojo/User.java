@@ -1,4 +1,4 @@
-package wallet.entity;
+package wallet.pojo;
 
 import java.util.List;
 

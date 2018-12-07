@@ -1,8 +1,6 @@
-package wallet.service;
+package wallet.scheduler;
 
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import javax.annotation.PostConstruct;
 
@@ -12,27 +10,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 
-import wallet.entity.User;
+import wallet.pojo.User;
+import wallet.pojo.UserDepositNotification;
 import wallet.repository.UserRepository;
+import wallet.service.RpcService;
+import wallet.service.UserService;
 
 @Service
-public class EthereumService {
+public class DepositChecker {
 
-	Logger logger = LoggerFactory.getLogger(EthereumService.class);
+	Logger logger = LoggerFactory.getLogger(DepositChecker.class);
 
-	private Web3j web3j;
-
+	@Autowired
+	private SimpMessagingTemplate template;
 	@Autowired
 	private UserRepository userRepository;
-
 	@Autowired
 	private RpcService rpcService;
-
 	@Autowired
 	private UserService userService;
 
@@ -42,8 +41,7 @@ public class EthereumService {
 	private static volatile long syncedBlockHeight = 0;
 
 	@Autowired
-	public EthereumService(Web3j web3, UserRepository userRepository, UserService userService) {
-		this.web3j = web3;
+	public DepositChecker(Web3j web3, UserRepository userRepository, UserService userService) {
 		this.userRepository = userRepository;
 		this.userService = userService;
 	}
@@ -51,16 +49,6 @@ public class EthereumService {
 	@PostConstruct
 	private void initializeSyncedBlockHeight() {
 		this.syncedBlockHeight = rpcService.getCurrentBlockHeight();
-	}
-
-	public String getWeb3Version() {
-		Web3ClientVersion web3ClientVersion = null;
-		try {
-			web3ClientVersion = web3j.web3ClientVersion().sendAsync().get();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return web3ClientVersion.getWeb3ClientVersion();
 	}
 
 	@Scheduled(fixedDelay = 3000)
@@ -72,7 +60,7 @@ public class EthereumService {
 		long currentBlockHeight = rpcService.getCurrentBlockHeight();
 		logger.debug("Synced height: " + syncedBlockHeight + " Current height: " + currentBlockHeight);
 		if (currentBlockHeight > syncedBlockHeight) {
-			for (long i = syncedBlockHeight; i <= currentBlockHeight; i++) {
+			for (long i = syncedBlockHeight+1; i <= currentBlockHeight; i++) {
 				checkSingleBlock(rpcService.getBlock(i));
 			}
 		}
@@ -82,9 +70,9 @@ public class EthereumService {
 
 	private void checkSingleBlock(JSONObject block) {
 		JSONArray transactions = block.getJSONArray("transactions");
-		System.out.println(konkukCoinContractAddress);
 		for (int k = 0; k < transactions.length(); k++) {
 			JSONObject transaction = transactions.getJSONObject(k);
+			logger.debug(transaction.toString());
 			Optional<String> toAddressOrNull = Optional.ofNullable(rpcService.getToAddress(transaction));
 			if (toAddressOrNull.isPresent()) {
 				String toAddress = toAddressOrNull.get();
@@ -98,6 +86,7 @@ public class EthereumService {
 						logger.debug("Found KUC transaction to user.");
 						User user = optionalUser.get();
 						userService.updateUserBalances(user);
+						notifyDeposit(user);
 						logger.debug("Updated balances of user with username " + user.getUsername());
 					}
 				} else if (userRepository.existsByAddress(toAddress)) {
@@ -112,5 +101,10 @@ public class EthereumService {
 	
 	private void setSyncedBlockHeight(long blockHeight) {
 		this.syncedBlockHeight = blockHeight;
+	}
+	
+	private void notifyDeposit(User user) {
+		UserDepositNotification notification = new UserDepositNotification(user.getUsername(), user.getBalances());
+		template.convertAndSend("topic/deposits", notification);
 	}
 }

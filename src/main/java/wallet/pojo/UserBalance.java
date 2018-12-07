@@ -1,4 +1,4 @@
-package wallet.entity;
+package wallet.pojo;
 
 import java.math.BigDecimal;
 

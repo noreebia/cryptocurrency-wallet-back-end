@@ -1,4 +1,4 @@
-package wallet.dto;
+package wallet.pojo;
 
 public class Credentials {
 	String username;

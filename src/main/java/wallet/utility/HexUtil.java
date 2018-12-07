@@ -29,5 +29,4 @@ public class HexUtil {
 		
 		return new BigInteger(formattedHexString, 16);
 	}
-	
 }

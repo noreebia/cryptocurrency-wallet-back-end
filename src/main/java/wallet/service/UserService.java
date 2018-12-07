@@ -11,10 +11,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import wallet.dto.Credentials;
-import wallet.dto.GenericResponse;
-import wallet.entity.User;
-import wallet.entity.UserBalance;
+import wallet.pojo.Credentials;
+import wallet.pojo.GenericResponse;
+import wallet.pojo.User;
+import wallet.pojo.UserBalance;
 import wallet.repository.UserRepository;
 
 @Service
