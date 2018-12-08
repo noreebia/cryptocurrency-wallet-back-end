@@ -1,18 +1,16 @@
 package wallet.pojo;
 
-import java.util.List;
-
 public class UserDepositNotification {
 
 	public String username;
-	public List<UserBalance> balances;
+	public String transactionHash;
 	
-	public UserDepositNotification(String username, List<UserBalance> balances) {
+	public UserDepositNotification(String username, String transactionHash) {
 		super();
 		this.username = username;
-		this.balances = balances;
+		this.transactionHash = transactionHash;
 	}
-
+	
 	public String getUsername() {
 		return username;
 	}
@@ -21,11 +19,11 @@ public class UserDepositNotification {
 		this.username = username;
 	}
 	
-	public List<UserBalance> getBalances() {
-		return balances;
+	public String getTransactionHash() {
+		return transactionHash;
 	}
 	
-	public void setBalances(List<UserBalance> balances) {
-		this.balances = balances;
+	public void setTransactionHash(String transactionHash) {
+		this.transactionHash = transactionHash;
 	}
 }

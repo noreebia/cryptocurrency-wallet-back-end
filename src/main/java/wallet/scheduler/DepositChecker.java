@@ -51,7 +51,7 @@ public class DepositChecker {
 		this.syncedBlockHeight = rpcService.getCurrentBlockHeight();
 	}
 
-	@Scheduled(fixedDelay = 3000)
+	@Scheduled(fixedDelay = 5000)
 	public void checkBlocksForDeposits() {
 		if (syncedBlockHeight == 0) {
 			initializeSyncedBlockHeight();
@@ -86,14 +86,17 @@ public class DepositChecker {
 						logger.debug("Found KUC transaction to user.");
 						User user = optionalUser.get();
 						userService.updateUserBalances(user);
-						notifyDeposit(user);
+						
+						String transactionHash = Optional.ofNullable(transaction.getString("hash")).orElse(null);
+						notifyDeposit(user.getUsername(), transactionHash);
 						logger.debug("Updated balances of user with username " + user.getUsername());
 					}
 				} else if (userRepository.existsByAddress(toAddress)) {
 					logger.debug("Found deposit to user with address" + toAddress + "!");
 					User user = userRepository.findByAddress(toAddress).get();
 					userService.updateUserBalances(user);
-					notifyDeposit(user);
+					String transactionHash = Optional.ofNullable(transaction.getString("hash")).orElse(null);
+					notifyDeposit(user.getUsername(), transactionHash);
 					logger.debug("Updated user balance with username " + user.getUsername() + " and address " + user.getAddress());
 				}
 			}
@@ -104,8 +107,8 @@ public class DepositChecker {
 		this.syncedBlockHeight = blockHeight;
 	}
 	
-	private void notifyDeposit(User user) {
-		UserDepositNotification notification = new UserDepositNotification(user.getUsername(), user.getBalances());
+	private void notifyDeposit(String username, String transactionHash) {
+		UserDepositNotification notification = new UserDepositNotification(username, transactionHash);
 		template.convertAndSend("/topic/deposits", notification);
 		logger.debug("Notified websocket subscribers.");
 	}
