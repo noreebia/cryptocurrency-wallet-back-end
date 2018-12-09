@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import wallet.pojo.Credentials;
 import wallet.pojo.GenericResponse;
+import wallet.pojo.TransactionRequest;
 import wallet.pojo.User;
 import wallet.service.UserService;
 
@@ -61,8 +62,13 @@ public class UserController {
 		return userService.createUserAddress(username);
 	}
 	
-	@PostMapping("/{username}/transactions/{currencySymbol}/{destinationAddress}/{amount}")
-	public GenericResponse sendTransaction(@PathVariable String username, @PathVariable String currencySymbol, @PathVariable String destinationAddress, @PathVariable String amount) {
-		return userService.transfer(username, destinationAddress, currencySymbol, amount);
+	@PostMapping("/transactions")
+	public GenericResponse sendTransaction(@RequestBody TransactionRequest details) {
+		System.out.println(details.getAmount());
+		System.out.println(details.getCurrencySymbol());
+		System.out.println(details.getDestinationAddress());
+		System.out.println(details.getUsername());
+//		return new GenericResponse(false, "yolo");
+		return userService.transfer(details);
 	}
 }

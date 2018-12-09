@@ -32,10 +32,10 @@ public class RpcServiceTest {
 	
 	@Test
 	public void transferEth() {
-		String sender = "0x4b40e8d11300c9904854f06095a1460f8136434e";
+		String sender = "0x62a7511960e1fb1060e8a828029a0cfcaee59dea";
 		String receiver = "0x580a89eb8aa6dBa5Bf78f7F921225C990a9Ef7d3";
 		String symbol = "eth";
-		String amount = "1";
+		String amount = "0.1";
 		try {
 			System.out.println(rpcService.transfer(sender, receiver, symbol, amount));
 		} catch(Exception e) {

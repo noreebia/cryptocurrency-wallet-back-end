@@ -11,8 +11,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import wallet.exception.RpcException;
 import wallet.pojo.Credentials;
 import wallet.pojo.GenericResponse;
+import wallet.pojo.TransactionRequest;
 import wallet.pojo.User;
 import wallet.pojo.UserBalance;
 import wallet.repository.UserRepository;
@@ -182,12 +184,37 @@ public class UserService {
 		User user = userRepository.findByUsername(username).get();
 		Optional<String> addressOfUser = getOptionalAddressOfUser(user);
 
-		if (addressOfUser.isPresent()) {
+		if (!addressOfUser.isPresent()) {
 			return new GenericResponse(false, NO_ADDRESS); // if user doesn't have an address yet
 		}
 
 		String txId = null;
 		txId = rpcService.transfer(addressOfUser.get(), destinationAddress, currencySymbol, amount);
+		return new GenericResponse(true, txId);
+	}
+
+	public GenericResponse transfer(TransactionRequest details) {
+		String usernameOfSender = details.getUsername();
+		if (!usernameExists(usernameOfSender)) {
+			return new GenericResponse(false, NON_EXISTENT_USERNAME);
+		}
+
+		User user = userRepository.findByUsername(usernameOfSender).get();
+		Optional<String> addressOfUser = getOptionalAddressOfUser(user);
+
+		if (!addressOfUser.isPresent()) {
+			return new GenericResponse(false, NO_ADDRESS); // if user doesn't have an address yet
+		}
+
+		String txId = null;
+		try {
+			System.out.println(addressOfUser.get() + "," + details.getDestinationAddress() + "," + details.getCurrencySymbol() + "," + details.getAmount());
+			txId = rpcService.transfer(addressOfUser.get(), details.getDestinationAddress(), details.getCurrencySymbol(), details.getAmount());
+		} catch (RpcException e) {
+			return new GenericResponse(false, e.getMessage());
+		} catch (Exception e) {
+			return new GenericResponse(false, e.getMessage());
+		}
 		return new GenericResponse(true, txId);
 	}
 

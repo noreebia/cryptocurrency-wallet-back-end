@@ -52,6 +52,7 @@ public class DepositChecker {
 	}
 
 	@Scheduled(fixedDelay = 5000)
+//	@Scheduled(fixedDelay = 10000)
 	public void checkBlocksForDeposits() {
 		if (syncedBlockHeight == 0) {
 			initializeSyncedBlockHeight();
