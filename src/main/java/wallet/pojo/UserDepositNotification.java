@@ -3,8 +3,17 @@ package wallet.pojo;
 public class UserDepositNotification {
 
 	public String username;
+	public String symbol;
 	public String transactionHash;
 	
+	
+	public UserDepositNotification(String username, String transactionHash, String symbol) {
+		super();
+		this.username = username;
+		this.symbol = symbol;
+		this.transactionHash = transactionHash;
+	}
+
 	public UserDepositNotification(String username, String transactionHash) {
 		super();
 		this.username = username;
@@ -25,5 +34,13 @@ public class UserDepositNotification {
 	
 	public void setTransactionHash(String transactionHash) {
 		this.transactionHash = transactionHash;
+	}
+
+	public String getSymbol() {
+		return symbol;
+	}
+
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
 	}
 }

@@ -89,7 +89,7 @@ public class DepositChecker {
 						userService.updateUserBalances(user);
 						
 						String transactionHash = Optional.ofNullable(transaction.getString("hash")).orElse(null);
-						notifyDeposit(user.getUsername(), transactionHash);
+						notifyDeposit(user.getUsername(), transactionHash, "kuc");
 						logger.debug("Updated balances of user with username " + user.getUsername());
 					}
 				} else if (userRepository.existsByAddress(toAddress)) {
@@ -97,7 +97,7 @@ public class DepositChecker {
 					User user = userRepository.findByAddress(toAddress).get();
 					userService.updateUserBalances(user);
 					String transactionHash = Optional.ofNullable(transaction.getString("hash")).orElse(null);
-					notifyDeposit(user.getUsername(), transactionHash);
+					notifyDeposit(user.getUsername(), transactionHash, "eth");
 					logger.debug("Updated user balance with username " + user.getUsername() + " and address " + user.getAddress());
 				}
 			}
@@ -108,8 +108,8 @@ public class DepositChecker {
 		this.syncedBlockHeight = blockHeight;
 	}
 	
-	private void notifyDeposit(String username, String transactionHash) {
-		UserDepositNotification notification = new UserDepositNotification(username, transactionHash);
+	private void notifyDeposit(String username, String transactionHash, String symbol) {
+		UserDepositNotification notification = new UserDepositNotification(username, transactionHash, symbol);
 		template.convertAndSend("/topic/deposits", notification);
 		logger.debug("Notified websocket subscribers.");
 	}
