@@ -35,7 +35,7 @@ public class DepositChecker {
 	@Autowired
 	private UserService userService;
 
-	@Value("${ethereum.contract.address.kkc}")
+	@Value("${ethereum.contract.address.kuc}")
 	private String konkukCoinContractAddress;
 
 	private static volatile long syncedBlockHeight = 0;
@@ -49,6 +49,7 @@ public class DepositChecker {
 	@PostConstruct
 	private void initializeSyncedBlockHeight() {
 		this.syncedBlockHeight = rpcService.getCurrentBlockHeight();
+		logger.debug("Initialized current block height to " + syncedBlockHeight);
 	}
 
 	@Scheduled(fixedDelay = 5000)
@@ -57,7 +58,6 @@ public class DepositChecker {
 		if (syncedBlockHeight == 0) {
 			initializeSyncedBlockHeight();
 		}
-		logger.debug("Checking for deposits");
 		long currentBlockHeight = rpcService.getCurrentBlockHeight();
 		logger.debug("Synced height: " + syncedBlockHeight + " Current height: " + currentBlockHeight);
 		if (currentBlockHeight > syncedBlockHeight) {
@@ -66,14 +66,14 @@ public class DepositChecker {
 			}
 		}
 		setSyncedBlockHeight(currentBlockHeight);
-		logger.debug("Finished deposit checking");
+		logger.debug("Synced blocks updated to: " + syncedBlockHeight);
 	}
 
 	private void checkSingleBlock(JSONObject block) {
 		JSONArray transactions = block.getJSONArray("transactions");
 		for (int k = 0; k < transactions.length(); k++) {
 			JSONObject transaction = transactions.getJSONObject(k);
-			logger.debug(transaction.toString());
+			logger.debug("Checked transaction " + transaction.getString("hash"));
 			Optional<String> toAddressOrNull = Optional.ofNullable(rpcService.getToAddress(transaction));
 			if (toAddressOrNull.isPresent()) {
 				String toAddress = toAddressOrNull.get();
@@ -81,7 +81,7 @@ public class DepositChecker {
 					logger.debug("Found KUC transaction");
 					String dataField = transaction.getString("input");
 					String userAddress = "0x" + dataField.substring(34, 74);
-					logger.debug("formatted address: " + userAddress);
+					logger.debug("Formatted address: " + userAddress);
 					Optional<User> optionalUser = userRepository.findByAddress(userAddress);
 					if(optionalUser.isPresent()) {
 						logger.debug("Found KUC transaction to user.");

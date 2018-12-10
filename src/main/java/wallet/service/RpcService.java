@@ -6,6 +6,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 
+import javax.annotation.PostConstruct;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.ParseException;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -29,9 +31,10 @@ public class RpcService {
 	private String serverAddress;
 	@Value("${ethereum.user.account.password}")
 	private String userAccountPassword;
-	@Value("${ethereum.contract.address.kkc}")
+	@Value("${ethereum.contract.address.kuc}")
 	private String konkukCoinContractAddress;
 
+	private static String TRANSFER_FUNCTION_ID = "0xa9059cbb";
 	private static String BALANCEOF_FUNCTION_ID = "0x70a08231";
 	private static String GET_ETH_BALANCE = "eth_getBalance";
 	private static String INVOKE_TOKEN_FUNCTION = "eth_call";
@@ -43,9 +46,15 @@ public class RpcService {
 	private static String GET_BLOCK = "eth_getBlockByNumber";
 
 	@Value("${active.currencies}")
-	String[] activeCurrencies;
-	
+	public String[] activeCurrency;
+	public String[] activeCurrencySymbols;
+
 	BigDecimal decimals = new BigDecimal(new BigInteger("1000000000000000000"));
+	
+	@PostConstruct
+	public void setActiveCurrencySymbols() {
+		activeCurrencySymbols = new String[] {activeCurrency[0].split("@")[1], activeCurrency[1].split("@")[1]};
+	}
 
 	public String createAddress() throws RpcException {
 		JSONObject request = buildBasicRequest();
@@ -68,31 +77,44 @@ public class RpcService {
 
 		unlockAccount(addressOfSender);
 		JSONObject request = buildBasicRequest();
-
-		switch (currencySymbol) {
-		case "eth":
-			JSONArray jsonArray = new JSONArray();
-			
-			JSONObject parameterObject = new JSONObject();
+		JSONArray jsonArray = new JSONArray();
+		JSONObject parameterObject = new JSONObject();
+		if(currencySymbol.equals(activeCurrencySymbols[0])) {
 			parameterObject.put("from", addressOfSender);
 			parameterObject.put("to", addressOfRecipient);
-			BigInteger transferAmount = new BigDecimal(amount).multiply(decimals).toBigInteger();
-			parameterObject.put("value", "0x"+transferAmount.toString(16));
-			
+			BigInteger ethAmountToTransfer = new BigDecimal(amount).multiply(decimals).toBigInteger();
+			parameterObject.put("value", "0x" + ethAmountToTransfer.toString(16));
+
 			jsonArray.put(parameterObject);
 			request.put("params", jsonArray);
 
 			request.put("method", SEND_TRANSACTION);
-			break;
-			default:
-				return null;
-		}
+		} else if(currencySymbol.equals(activeCurrencySymbols[1])) {
+			parameterObject.put("from", addressOfSender);
+			parameterObject.put("to", konkukCoinContractAddress);
+			parameterObject.put("value", "0x0");
 
+			String addressDataField = String.format("%64s", addressOfRecipient.substring(2)).replace(' ', '0');
+			System.out.println(addressDataField);
+			BigInteger kucAmountToTransfer = new BigDecimal(amount).multiply(decimals).toBigInteger();
+			String hexString = HexUtil.decimalToHexString(kucAmountToTransfer);
+			String amountDataField = String.format("%64s", hexString).replace(' ', '0');
+			System.out.println(amountDataField);
+			String dataField = TRANSFER_FUNCTION_ID + addressDataField + amountDataField;
+			System.out.println(dataField);
+			parameterObject.put("data", dataField);
+			jsonArray.put(parameterObject);
+			request.put("params", jsonArray);
+			request.put("method", SEND_TRANSACTION);
+		} else {
+			throw new RpcException("No matching symbol");
+		}
 		JSONObject responseFromNode = sendRequest(request);
 		if (responseFromNode.has("error")) {
 			throw new RpcException(responseFromNode.getJSONObject("error").getString("message"));
 		}
 		lockAccount(addressOfSender);
+		System.out.println(responseFromNode.toString());
 		return responseFromNode.getString("result");
 	}
 
@@ -138,17 +160,15 @@ public class RpcService {
 
 		JSONObject request = buildBasicRequest();
 		JSONArray parameters = new JSONArray();
-
-		switch (symbol) {
-		case "eth":
+		
+		if(symbol.equals(activeCurrencySymbols[0])) {
 			parameters.put(address);
 			parameters.put("latest");
 
 			request.put("params", parameters);
 			request.put("method", GET_ETH_BALANCE);
-			break;
-		case "kkc":
-
+	
+		} else if(symbol.equals(activeCurrencySymbols[1])) {
 			String formattedAddress = address.substring(2);
 			String dataField = String.format("%64s", formattedAddress).replace(' ', '0');
 			String dataString = BALANCEOF_FUNCTION_ID + dataField;
@@ -162,9 +182,9 @@ public class RpcService {
 
 			request.put("params", parameters);
 			request.put("method", INVOKE_TOKEN_FUNCTION);
-			break;
-		default:
-			break;
+
+		} else {
+			throw new RpcException("No matching symbols");
 		}
 		JSONObject response = sendRequest(request);
 		if (response.has("error")) {
@@ -178,7 +198,7 @@ public class RpcService {
 		BigDecimal bigDecimalBalance = new BigDecimal(balanceInHexFormat);
 		return bigDecimalBalance.divide(decimals);
 	}
-	
+
 	private JSONObject sendRequest(JSONObject httpBody) {
 		CloseableHttpClient httpClient = HttpClients.createDefault();
 		HttpPost httpPost = new HttpPost(serverAddress);
@@ -201,23 +221,23 @@ public class RpcService {
 			throw new RpcException(e);
 		}
 	}
-	
+
 	public long getCurrentBlockHeight() {
 		JSONObject request = buildBasicRequest();
 		request.put("method", GET_BLOCK_HEIGHT);
-		
+
 		JSONArray parameters = new JSONArray();
 		request.put("params", parameters);
-		
+
 		JSONObject response = sendRequest(request);
-		if(hasError(response)) {
+		if (hasError(response)) {
 			throw new RpcException(getErrorMessage(response));
 		}
 		BigInteger blockHeight = HexUtil.hexStringToDecimalBigInt(getResultString(response));
 		return blockHeight.longValue();
 
 	}
-	
+
 	public JSONObject getBlock(long blockNumber) {
 		JSONObject request = buildBasicRequest();
 		request.put("method", GET_BLOCK);
@@ -226,48 +246,48 @@ public class RpcService {
 		parameters.put(true);
 		request.put("params", parameters);
 		JSONObject response = sendRequest(request);
-		if(hasError(response)) {
+		if (hasError(response)) {
 			throw new RpcException(getErrorMessage(response));
 		}
 		return getResultObject(response);
 	}
-	
+
 	public boolean isContractTransaction(JSONObject transaction) {
-		if(transaction.getString("input").equals("0x")) {
+		if (transaction.getString("input").equals("0x")) {
 			return true;
 		}
 		return false;
 	}
-	
+
 	public String getToAddress(JSONObject transaction) {
-		if(transaction.isNull("to")) {
+		if (transaction.isNull("to")) {
 			return null;
 		}
 		return transaction.getString("to");
 	}
-	
+
 	public boolean isSmartContractTransaction(JSONObject transaction) {
-		if(transaction.getString("input").equals("0x")) {
+		if (transaction.getString("input").equals("0x")) {
 			return false;
 		}
 		return true;
 	}
-	
+
 	private boolean hasError(JSONObject response) {
-		if(response.has("error")) {
+		if (response.has("error")) {
 			return true;
 		}
 		return false;
 	}
-	
+
 	private String getErrorMessage(JSONObject response) {
 		return response.getJSONObject("error").getString("message");
 	}
-	
+
 	private String getResultString(JSONObject response) {
 		return response.getString("result");
 	}
-	
+
 	private JSONObject getResultObject(JSONObject response) {
 		return response.getJSONObject("result");
 	}

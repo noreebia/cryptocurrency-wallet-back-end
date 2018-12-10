@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.http.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import wallet.pojo.TransactionRequest;
 import wallet.pojo.User;
 import wallet.pojo.UserBalance;
 import wallet.repository.UserRepository;
+import wallet.scheduler.DepositChecker;
 
 @Service
 public class UserService {
@@ -26,12 +29,15 @@ public class UserService {
 	private static String NON_EXISTENT_USERNAME = "Username does not exist.";
 	private static String INVALID_CREDENTIALS = "Wrong username or password. Please try again.";
 	private static String NO_ADDRESS = "User does not have an address yet. Please create one.";
+	private static String WRONG_ADDRESS_FORMAT = "Input format of recipient's address is wrong. It should start with \"0x\" and be 42 characters long total. ";
 
 	UserRepository userRepository;
 	RpcService rpcService;
 
 	@Value("${active.currencies}")
 	String[] activeCurrencies;
+
+	Logger logger = LoggerFactory.getLogger(UserService.class);
 
 	@Autowired
 	public UserService(UserRepository userRepository, RpcService rpcService) {
@@ -48,6 +54,7 @@ public class UserService {
 		if (usernameExists(credentials.getUsername())) {
 			response.setSuccessful(false);
 			response.setData((EXISTING_USERNAME_MESSAGE));
+			logger.warn("Failed creating new user");
 		} else {
 			User user = new User();
 			user.setUsername(credentials.getUsername());
@@ -60,27 +67,28 @@ public class UserService {
 				String currencySymbol = strings[1];
 				balances.add(new UserBalance(currencyName, currencySymbol, BigDecimal.valueOf(0)));
 			}
-			// Map<String, BigInteger> balances = new HashMap<>();
-			// for(String currency: activeCurrencies) {
-			// balances.put(currency, BigInteger.valueOf(0));
-			// }
 			user.setBalances(balances);
-
-			User result = userRepository.save(user);
-			if (result.getUsername() == user.getUsername() && result.getPassword() == user.getPassword()) {
-				response.setSuccessful(true);
+			try {
+				userRepository.save(user);
+			} catch(Exception e) {
+				response.setSuccessful(false);
+				response.setData(e);
+				return response;
 			}
+			response.setSuccessful(true);
+			logActivity("Created new user with username", user.getUsername());
 		}
 		return response;
 	}
 
 	public GenericResponse getUserBalance(String username) {
 		Optional<User> user = userRepository.findByUsername(username);
-
 		if (user.isPresent()) {
 			updateUserBalances(user.get());
+			logActivity("Returned balances of user", username);
 			return new GenericResponse(true, user.get().getBalances());
 		} else {
+			logActivity("User with username", username, "does not exist");
 			return new GenericResponse(false, NON_EXISTENT_USERNAME);
 		}
 	}
@@ -91,7 +99,6 @@ public class UserService {
 			for (UserBalance balance : user.getBalances()) {
 				balance.setBalance(rpcService.getBalance(balance.getCurrencySymbol(), user.getAddress()));
 			}
-
 			userRepository.save(user);
 		} catch (Exception e) {
 			return false;
@@ -100,9 +107,7 @@ public class UserService {
 	}
 
 	public GenericResponse getUser(String username) {
-
 		Optional<User> user = userRepository.findByUsername(username);
-
 		if (user.isPresent()) {
 			return new GenericResponse(true, user.get());
 		} else {
@@ -115,21 +120,21 @@ public class UserService {
 	}
 
 	public boolean usernameExists(String username) {
-
-		System.out.println(
-				"Existence of user with username " + username + ": " + userRepository.existsByUsername(username));
 		return userRepository.existsByUsername(username);
 	}
 
 	public GenericResponse isValidCredentials(Credentials credentials) {
 		if (!usernameExists(credentials.getUsername())) {
+			logger.debug("Credentials check failed");
 			return new GenericResponse(false, NON_EXISTENT_USERNAME);
 		}
 
 		User user = userRepository.findByUsername(credentials.getUsername()).get();
 		if (user.getPassword().equals(credentials.getPassword())) {
+			logger.debug("Valid credentials");
 			return new GenericResponse(true, null);
 		} else {
+			logger.debug("Credentials check failed");
 			return new GenericResponse(false, INVALID_CREDENTIALS);
 		}
 	}
@@ -144,6 +149,7 @@ public class UserService {
 
 		Optional<String> addressOfUser = getOptionalAddressOfUser(user);
 		if (addressOfUser.isPresent()) {
+			logActivity("Returned existing ethereum address for user", username);
 			return new GenericResponse(true, addressOfUser);
 		}
 
@@ -158,6 +164,7 @@ public class UserService {
 
 		user.setAddress(newAddress);
 		userRepository.save(user);
+		logActivity("Created ethereum address for user", username);
 		return new GenericResponse(true, newAddress);
 	}
 
@@ -189,11 +196,21 @@ public class UserService {
 		}
 
 		String txId = null;
-		txId = rpcService.transfer(addressOfUser.get(), destinationAddress, currencySymbol, amount);
+		try {
+			txId = rpcService.transfer(addressOfUser.get(), destinationAddress, currencySymbol, amount);
+		} catch(Exception e) {
+			logger.debug("Transaction requested by user \"" + username + "\" failed");
+			e.printStackTrace();
+			return new GenericResponse(false, e.getMessage());
+		}
+		logger.debug("Successfully transferred " + amount + " " + currencySymbol + "from \"" + username + "\" to \"" + destinationAddress + "\"");
 		return new GenericResponse(true, txId);
 	}
 
 	public GenericResponse transfer(TransactionRequest details) {
+		if(!details.getDestinationAddress().startsWith("0x") || details.getDestinationAddress().length() != 42) {
+			return new GenericResponse(false, WRONG_ADDRESS_FORMAT);
+		}
 		String usernameOfSender = details.getUsername();
 		if (!usernameExists(usernameOfSender)) {
 			return new GenericResponse(false, NON_EXISTENT_USERNAME);
@@ -208,17 +225,30 @@ public class UserService {
 
 		String txId = null;
 		try {
-			System.out.println(addressOfUser.get() + "," + details.getDestinationAddress() + "," + details.getCurrencySymbol() + "," + details.getAmount());
-			txId = rpcService.transfer(addressOfUser.get(), details.getDestinationAddress(), details.getCurrencySymbol(), details.getAmount());
+			txId = rpcService.transfer(addressOfUser.get(), details.getDestinationAddress(),
+					details.getCurrencySymbol(), details.getAmount());
 		} catch (RpcException e) {
+			logger.warn("Transaction requested by user \"" + addressOfUser.get() + "\" failed");
+			e.printStackTrace();
 			return new GenericResponse(false, e.getMessage());
 		} catch (Exception e) {
+			logger.warn("Transaction requested by user \"" + addressOfUser.get() + "\" failed");
+			e.printStackTrace();
 			return new GenericResponse(false, e.getMessage());
 		}
+		logger.debug("[Transferred] " + details.getAmount() + " " + details.getCurrencySymbol() + "from \"" + addressOfUser.get() + "\" to \"" + details.getDestinationAddress() + "\"");
 		return new GenericResponse(true, txId);
 	}
 
 	private static Optional<String> getOptionalAddressOfUser(User user) {
 		return Optional.ofNullable(user.getAddress());
+	}
+	
+	private void logActivity(String message, String escapedMessage) {
+		logger.debug(message + "\"" + escapedMessage + "\"");
+	}
+	
+	private void logActivity(String beforeEscape, String escapedMessage, String afterEscape) {
+		logger.debug(beforeEscape + "\"" + escapedMessage + "\"" + afterEscape);
 	}
 }
