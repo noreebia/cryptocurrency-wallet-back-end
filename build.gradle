@@ -14,6 +14,7 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
+apply plugin: 'maven'
 
 group = 'org.sooyoungkim'
 version = '0.0.1-SNAPSHOT'
@@ -23,6 +24,11 @@ repositories {
 	mavenCentral()
 }
 
+jar {
+    manifest {
+        attributes 'Main-Class': 'wallet.CryptocurrencyWalletApplication.java'
+    }
+}
 
 dependencies {
 	implementation('org.springframework.boot:spring-boot-starter-data-mongodb')
